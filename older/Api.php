@@ -436,11 +436,11 @@
 							if($conn->query($query2)) {
 								$release = array(
 									'id'=>$release_id,
-									'employeeId'=>$employee_id,
+									'employee_id'=>$employee_id,
 									'productsRelease'=>$products,
 									'status'=>$status,
-									'creationDate'=>$c_date,
-									'realizationDate'=>null
+									'creation_date'=>$c_date,
+									'realization_date'=>null
 								);
 								
 								$response['error'] = false;								
@@ -468,7 +468,7 @@
 					} else {
 						$response['error'] = true;
 						$response['mysqli_error_message'] = $stmt->error; 
-						$response['message'] = 'The registration for this release failed.';
+						$response['message'] = 'Release registered failed.';
 						$stmt->close();
 					}
 				/*}else{
@@ -477,26 +477,24 @@
 				} */
 			break;
 			
-			case 'get_all_releases':
-				if(strcmp($_SERVER['REQUEST_METHOD'], 'GET') == 0)
-				{
-					$query="SELECT * FROM ". RELEASES_TABLE;
-					$stmt = $conn->prepare($query);
-					$stmt->execute();
+			case 'get_release':
+				if(isTheseParametersAvailable(array('release_id'))){
 					
-					$releases = fetchObjects($stmt);
-					
-					$stmt->close();
-					$response['error'] = false; 
-					$response['message'] = 'Releases fetched successfully'; 
-					$response['object'] = $releases; 
+				
+				}else{
+					$response['error'] = true; 
+					$response['message'] = 'required parameters are not available'; 
 				}
-				else {
-					$response['error'] = true;
-					$response['message'] = 'Only HTTP GET request method allowed.'; 
-				}
-			break;
+	
+			
+			default: 
+				$response['error'] = true; 
+				$response['message'] = 'Invalid Operation Called';
 		}
+		
+	}else{
+		$response['error'] = true; 
+		$response['message'] = 'Invalid API Call';
 	}
 	
 	echo json_encode($response);

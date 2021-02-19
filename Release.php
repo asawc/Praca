@@ -61,7 +61,7 @@
 		// const __default = self::OCZEKUJĄCY;
 		
 		const OCZEKUJĄCY = 1; // awaited
-		const W_TRAKCIE = 2; // be pending
+		const IN_PROGRESS = 2; // W_TRAKCIE be pending
 		const ZROBIONY = 3; // realized
 	}
 	

@@ -35,7 +35,7 @@ define('EMPLOYEE_NAME', 'name');
 define('EMPLOYEE_SURNAME', 'surname');
 
 // nazwa tabeli wydania
-define('RELEASES_TABLE', 'releases'); 
+define('RELEASES_TABLE', 'releases_3'); 
 // nazwy kolumn
 define('RELEASES_ID', 'id');
 define('RELEASES_ID_EMPLOYEE', 'id_employee');
@@ -44,7 +44,7 @@ define('RELEASES_DATE_CREATION', 'date_creation');
 define('RELEASES_DATE_REALIZING', 'date_realizing');
 
 // nazwa tabeli zamówienia produktów
-define('PRODUCTS_ORDERS_TABLE', 'products_orders'); 
+define('PRODUCTS_ORDERS_TABLE', 'products_orders_2'); 
 // nazwy kolumn
 define('PRODUCTS_ORDERS_ID', 'id');
 define('PRODUCTS_ORDERS_ID_PRODUCT', 'id_product');
