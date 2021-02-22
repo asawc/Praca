@@ -8,6 +8,7 @@
 		private $cDate;
 		private $rDate;
 		private $products;
+		private $Surname;
 		
 		 public function __construct(object $release) {
 			$this->id = null;
@@ -15,7 +16,8 @@
 			$this->setStatus($release->status);
 			$this->products = $release->productsRelease;
 			$this->cDate = $this->getCurrentDateTime();
-			$this->rDate = null;
+			$this->Surname = $release->Surname;
+			//$this->rDate = null;
 		}
 		
 		public function getCurrentDateTime() {
@@ -54,6 +56,10 @@
 		
 		public function getProducts() {
 			return $this->products;
+		}
+
+		public function getEmployeeSurname() {
+			return $this->Surname;
 		}
 	}
 	

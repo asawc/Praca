@@ -41,7 +41,8 @@ define('RELEASES_ID', 'id');
 define('RELEASES_ID_EMPLOYEE', 'id_employee');
 define('RELEASES_STATUS', 'status');
 define('RELEASES_DATE_CREATION', 'date_creation');
-define('RELEASES_DATE_REALIZING', 'date_realizing');
+//define('RELEASES_DATE_REALIZING', 'date_realizing');
+define('RELEASES_EMPLOYEE_SURNAME', 'surname');
 
 // nazwa tabeli zamówienia produktów
 define('PRODUCTS_ORDERS_TABLE', 'products_orders_2'); 
