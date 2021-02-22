@@ -480,7 +480,7 @@
 			case 'get_all_releases':
 				if(strcmp($_SERVER['REQUEST_METHOD'], 'GET') == 0)
 				{
-					$query="SELECT * FROM ". RELEASES_TABLE;
+					$query="SELECT * FROM ". RELEASES_TABLE AND "SELECT ". EMPLOYEE_SURNAME . ", ". EMPLOYEE_NAME ." FROM ". EMPLOYEES_TABLE ." WHERE ". EMPLOYEE_ID ." = ?";
 					$stmt = $conn->prepare($query);
 					$stmt->execute();
 					
