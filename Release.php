@@ -9,6 +9,7 @@
 		private $rDate;
 		private $products;
 		private $Surname;
+		private $symbol;
 		
 		 public function __construct(object $release) {
 			$this->id = null;
@@ -17,6 +18,7 @@
 			$this->products = $release->productsRelease;
 			$this->cDate = $this->getCurrentDateTime();
 			$this->Surname = $release->Surname;
+			$this->symbol = $release->symbol;
 			//$this->rDate = null;
 		}
 		

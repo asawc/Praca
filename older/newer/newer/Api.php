@@ -400,10 +400,9 @@
 					//$release=json_decode($json, true);
 					//displayJSONObjects($release);
 						
-					$employee = $release->employee;	
-					$employee_id=$employee->id;
+					$employee_id=$release->employeeId;
 					$status=$release->status;
-					$productsRel=$release->productsRelease;
+					$products=$release->productsRelease;
 					
 					$c_date=date_create();
 					$c_format=$c_date->format('Y-m-d H:i:s');
@@ -424,11 +423,11 @@
 							PRODUCTS_ORDERS_STATUS ." ,". PRODUCTS_ORDERS_QUANTITY .
 							") VALUES ";
 						
-						if(count($productsRel)>0) {
-							foreach($productsRel as $key => $product) {
+						if(count($products)>0) {
+							foreach($products as $key => $product) {
 								if(!ProductStatus::isValidValue($product->status))
 									$product->status = ProductStatus::OCZEKUJĄCY;
-								$query2.="($product->productId, $release_id, $product->status, $product->quantity),";
+								$query2.="($product->id, $release_id, $product->status, $product->quantity),";
 							}
 
 							$query2 = rtrim($query2, ","); // usunięcie przecinka na końcu
@@ -438,7 +437,7 @@
 								$release = array(
 									'id'=>$release_id,
 									'employeeId'=>$employee_id,
-									'productsRelease'=>$productsRel,
+									'productsRelease'=>$products,
 									'status'=>$status,
 									'creationDate'=>$c_date,
 									'realizationDate'=>null
@@ -481,120 +480,18 @@
 			case 'get_all_releases':
 				if(strcmp($_SERVER['REQUEST_METHOD'], 'GET') == 0)
 				{
-					$query="SELECT * FROM ". RELEASES_TABLE;
-					// wykonanie zapytania o wydania
+					$query="SELECT * FROM ". RELEASES_TABLE AND "SELECT ". EMPLOYEE_SURNAME . ", ". EMPLOYEE_NAME ." FROM ". EMPLOYEES_TABLE ." WHERE ". EMPLOYEE_ID ." = ?";
 					$stmt = $conn->prepare($query);
 					$stmt->execute();
 					
 					$releases = fetchObjects($stmt);
+					
 					$stmt->close();
-					// tablica id pracowników z tabeli wydań
-					$employeesIdsArray = array();
-					// tablica id wydań
-					$relsIdsArray = array();
-					
-					//przygotowanie zapytania o pracowników w wydaniach
-					//$query="SELECT * FROM ". EMPLOYEES_TABLE ." WHERE id IN (";
-					// przygotowanie zapytania o produkty w wydaniach
-					$productsReleasesQuery="SELECT * FROM ". PRODUCTS_ORDERS_TABLE ." WHERE ". PRODUCTS_ORDERS_ID_RELEASE 
-						." IN (";
-					foreach($releases as $key => $release) {
-						$employeesIdsArray[$key]=$release[RELEASES_ID_EMPLOYEE];
-						$productsReleasesQuery.=$release[RELEASES_ID].",";
-					}
-					$productsReleasesQuery = rtrim($productsReleasesQuery, ","); // usunięcie przecinka na końcu
-					$productsReleasesQuery .= ")";
-				//	echo "\n".$productsReleasesQuery."\n";
-					
-					//$productsReleasesQuery = rtrim($productsReleasesQuery, "SELECT");
-
-					//echo implode(",", $employeesIdsArray);
-					// wyrzucenie powtarzających się ids pracowników
-					/*$uniqueEmplsIdsArray = 	array_unique($employeesIdsArray);
-					//$uniqueRelsIdsArray = array_unique($relsIdsArray);
-					
-					foreach($uniqueEmplsIdsArray as $key => $emplId)
-						$query .= $emplId .",";
-						
-					$query = rtrim($query, ","); // usunięcie przecinka na końcu
-					$query .= ")";
-					//echo "\n".$query."\n";
-					*/
-					// wykonanie zapytania o pracowniów
-					$stmt = $conn->prepare($query);
-					if($stmt->execute()) 
-					{
-						$employees = fetchObjects($stmt);
-						$stmt->close();
-						
-						// wykonanie zapytania o produkty w wydaniach
-						$stmt = $conn->prepare($productsReleasesQuery);
-						if($stmt->execute()) {
-							$productsReleases = fetchObjects($stmt);
-							
-						
-							// zapisanie pracowników do poszczególnych wydań do JSONA
-							// zapisanie produktów do poszczegolnych wydań do JSONA
-							// zmiana nazw niektórych pól i usunięcie zbędnych JSONA
-							$i=0;
-							while($i<count($releases)) {
-								$j=0;
-								while($j<count($employees)) {
-									//echo $releases[$i][RELEASES_ID_EMPLOYEE];
-									//implode(",", $employees[$j]['id']);
-									if($employees[$j][EMPLOYEE_ID] == $releases[$i][RELEASES_ID_EMPLOYEE]) {
-										$releases[$i]['employee']=$employees[$j];
-										break;
-									}
-									$j++;
-								}
-								$k=0;
-								$l=0;
-								while($k<count($productsReleases)) {
-									if($productsReleases[$k][PRODUCTS_ORDERS_ID_RELEASE] == 
-										$releases[$i][RELEASES_ID]){
-										$releases[$i]['productsRelease'][$l]=$productsReleases[$k];
-										$releases[$i]['productsRelease'][$l]['productId']=
-											$productsReleases[$k][PRODUCTS_ORDERS_ID_PRODUCT];
-										unset($releases[$i]['productsRelease'][$l][PRODUCTS_ORDERS_ID_RELEASE]);
-										unset($releases[$i]['productsRelease'][$l][PRODUCTS_ORDERS_ID_PRODUCT]);
-										unset($releases[$i]['productsRelease'][$l][PRODUCTS_ORDERS_ID]);
-										$l++;
-									}
-									$k++;
-								}
-								// jeśli nie ma żadnego produktu ($l=0) ustaw null
-								if($l==0)
-									$releases[$i]['productsRelease'] = null;
-								// $releases[$i]['creationDate']=DateTime::createFromFormat('Y-m-d H:i:s', $releases[$i][RELEASES_DATE_CREATION]);
-								$releases[$i]['creationDate']=$releases[$i][RELEASES_DATE_CREATION];
-								//$releases[$i]['realizationDate']=$releases[$i][RELEASES_DATE_REALIZING];
-								unset($releases[$i][RELEASES_DATE_CREATION]);
-								//unset($releases[$i][RELEASES_DATE_REALIZING]);
-								unset($releases[$i][RELEASES_ID_EMPLOYEE]);
-								$i++;
-							}
-							
-							$response['error'] = false; 
-							$response['message'] = 'Releases fetched successfully'; 
-							$response['object'] = $releases; 
-						}
-						else {
-							$response['error'] = true; 
-							$response['message'] = 'Products of Releases aren\'t fetched successfully'; 
-							$response['object'] = $releases; 
-						}
-						$stmt->close();
-					}
-					else {
-						$stmt->close();
-						$response['error'] = true; 
-						$response['message'] = 'Employees in Realeases aren\'t fetched successfully';
-						$response['object'] = $releases; 
-					}	
-			//	}
-		//	}
-				} else {
+					$response['error'] = false; 
+					$response['message'] = 'Releases fetched successfully'; 
+					$response['object'] = $releases; 
+				}
+				else {
 					$response['error'] = true;
 					$response['message'] = 'Only HTTP GET request method allowed.'; 
 				}

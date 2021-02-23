@@ -35,7 +35,7 @@ define('EMPLOYEE_NAME', 'name');
 define('EMPLOYEE_SURNAME', 'surname');
 
 // nazwa tabeli wydania
-define('RELEASES_TABLE', 'releases_2'); 
+define('RELEASES_TABLE', 'releases_3'); 
 // nazwy kolumn
 define('RELEASES_ID', 'id');
 define('RELEASES_ID_EMPLOYEE', 'id_employee');
