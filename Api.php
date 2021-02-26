@@ -494,7 +494,7 @@
 					$relsIdsArray = array();
 					
 					//przygotowanie zapytania o pracowników w wydaniach
-					//$query="SELECT * FROM ". EMPLOYEES_TABLE ." WHERE id IN (";
+					$query="SELECT * FROM ". EMPLOYEES_TABLE ." WHERE id IN (";
 					// przygotowanie zapytania o produkty w wydaniach
 					$productsReleasesQuery="SELECT * FROM ". PRODUCTS_ORDERS_TABLE ." WHERE ". PRODUCTS_ORDERS_ID_RELEASE 
 						." IN (";
@@ -510,8 +510,8 @@
 
 					//echo implode(",", $employeesIdsArray);
 					// wyrzucenie powtarzających się ids pracowników
-					/*$uniqueEmplsIdsArray = 	array_unique($employeesIdsArray);
-					//$uniqueRelsIdsArray = array_unique($relsIdsArray);
+					$uniqueEmplsIdsArray = 	array_unique($employeesIdsArray);
+					$uniqueRelsIdsArray = array_unique($relsIdsArray);
 					
 					foreach($uniqueEmplsIdsArray as $key => $emplId)
 						$query .= $emplId .",";
@@ -519,7 +519,7 @@
 					$query = rtrim($query, ","); // usunięcie przecinka na końcu
 					$query .= ")";
 					//echo "\n".$query."\n";
-					*/
+					//*/
 					// wykonanie zapytania o pracowniów
 					$stmt = $conn->prepare($query);
 					if($stmt->execute()) 
