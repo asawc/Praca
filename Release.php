@@ -3,29 +3,46 @@
 	class Release {
 		
 		private $id;
-		private $employeeId;
+		private $employee;
 		private $status;
-		private $cDate;
-		private $rDate;
-		private $products;
-		private $Surname;
-		private $symbol;
+		private $creationDate;
+		private $realizationDate;
+		private $productsRelease;
 		
-		 public function __construct(object $release) {
-			$this->id = null;
-			$this->employeeId = $release->employeeId;
-			$this->setStatus($release->status);
-			$this->products = $release->productsRelease;
-			$this->cDate = $this->getCurrentDateTime();
-			$this->Surname = $release->Surname;
-			$this->symbol = $release->symbol;
-			//$this->rDate = null;
+		public function __construct($id, $employee, $status, $creationDate, /*$realizationDate,*/ 
+			$productsRelease) {
+			$this->id = $id;
+			$this->employee = $employee;
+			$this->status = $status;
+			$this->productsRelease = $productsRelease;
+			$this->creationDate = $creationDate;
+			//$this->realizationDate = $realizationDate;
 		}
 		
-		public function getCurrentDateTime() {
+		public function toAssocArray() {
+			$array = array();
+			$array['id'] = $this->id;
+			$array['employee'] = $this->employee;
+			$array['status'] = $this->status;
+			$array['creationDate'] = $this->creationDate;
+			$array['realizationDate'] = $this->realizationDate;
+			$array['productsRelease'] = $this->productsRelease;
+			return $array;
+		}
+	/*	
+		public function __construct(object $release) {
+			$this->id = null;
+			$this->employee = $release->employeeId;
+			$this->setStatus($release->status);
+			$this->productsRelease = $release->productsRelease;
+			$this->creationDate = self::getCurrentDateTime();
+			$this->realizationDate = null;
+		}
+		*/
+		public static function getCurrentDateTime() {
 			return date_create();
 		}
-		public function getDateTimeFormat(DateTime $dt){
+		public static function getDateTimeFormat(DateTime $dt){
 			return $dt->format('Y-m-d H:i:s');
 		}
 		
@@ -33,7 +50,7 @@
 			if(Status::isValidValue($status))
 				$this->status = $status;
 			else
-				$this->status = Status::OCZEKUJĄCY;
+				$this->status = Status::PENDING;
 		}
 		
 		public function getId() {
@@ -41,7 +58,7 @@
 		}
 		
 		public function getEmployeeId() {
-			return $this->employeeId;
+			return $this->employee;
 		}
 		
 		public function getStatus() {
@@ -49,34 +66,30 @@
 		}
 		
 		public function getCreationDate() {
-			return $this->cDate;
-		}
+			return $this->creationDate;
+		} 
 		
 		public function getRealizationDate() {
-			return $this->rDate;
+			return $this->realizationDate;
 		}
 		
 		public function getProducts() {
-			return $this->products;
-		}
-
-		public function getEmployeeSurname() {
-			return $this->Surname;
+			return $this->productsRelease;
 		}
 	}
 	
 	abstract class Status extends BasicEnum {
 		// const __default = self::OCZEKUJĄCY;
 		
-		const OCZEKUJĄCY = 1; // awaited
-		const IN_PROGRESS = 2; // W_TRAKCIE be pending
+		const AWAITED = 1; // awaited
+		const W_TRAKCIE = 2; // be pending
 		const ZROBIONY = 3; // realized
 	}
 	
 	abstract class ProductStatus extends BasicEnum {
 		// const __default = self::OCZEKUJĄCY;
 		
-		const OCZEKUJĄCY = 1; // awaited
+		const AWAITED = 1; // awaited
 		const BRAK_W_MAGAZYNIE = 2; 
 		const WYDANY = 3; // realized
 	}

@@ -1,0 +1,5 @@
+Trochę się męczyłem nad funkcją get_release w php, tak żeby wszystko wyciągało (razem z pracownikiem, productsRelease i produktami).
+Po za tym dzisiaj nie najlepiej się czułem i słabo mi szło.
+Wiecej nie udało mi sie zrobic.
+A planowałem tak, żeby przesyłać id wydania pomiędzy aktywnościami (dlatego chciałem zrobić get_release) pobrać wydanie z serwera, no i później wypełnić widok tymi danymi we fragmentach.
+Moźesz przesłać id wydania poprzez funkcję Intent.putExtras().

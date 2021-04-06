@@ -1,7 +1,16 @@
 <?php 
 
-	require_once 'DbConnect.php';
+/*	require_once 'DbConnect.php';
 	require_once 'Release.php';
+	require_once 'Employee.php';
+	require_once 'ProductRelease.php';
+	require_once 'Product.php';
+*/
+	include("DbConnect.php");
+	include("Release.php");
+	include("Employee.php");
+	include("ProductRelease.php");
+	include("Product.php");
 	
 	$response = array();
 	
@@ -102,7 +111,7 @@
 					$stmt = $conn->prepare($query);
 					$stmt->bind_param("ii", $quantity, $id);
 					if($stmt->execute() && $stmt->affected_rows == 1) {
-						$response['productId'] = $id; 
+						// $response['productId'] = $id; 
 						$response['error'] = false; 
 						$response['message'] = 'Product quantity updated successfully.'; 
 					}
@@ -136,7 +145,7 @@
 							'productname'=>$productname, 
 							'productsymbol'=>$productsymbol
 						);
-						$response['product'] = $product; 
+						$response['object'] = $product; 
 						$response['error'] = false; 
 						$response['message'] = 'Product exist.'; 
 					}
@@ -205,7 +214,7 @@
 							);
 							$response['error'] = false; 
 							$response['message'] = 'Product registered successfully'; 
-							$response['product'] = $product; 
+							$response['object'] = $product; 
 						}
 						else {
 							$response['error'] = true; 
@@ -243,7 +252,7 @@
 						);
 						$response['error'] = false; 
 						$response['message'] = 'This product is in our database'; 
-						$response['product'] = $product; 
+						$response['object'] = $product; 
 					}else{
 						$response['error'] = false; 
 						$response['message'] = 'This product is`nt in our database yet';
@@ -277,7 +286,7 @@
 						);
 						$response['error'] = false; 
 						$response['message'] = 'This employee is in our database'; 
-						$response['employee'] = $employee; 
+						$response['object'] = $employee; 
 					}else{
 						$response['error'] = false; 
 						$response['message'] = 'This employee is`nt in our database yet';
@@ -342,7 +351,7 @@
 						);
 						$response['error'] = false; 
 						$response['message'] = 'Employee registered successfully'; 
-						$response['user'] = $employee; 
+						$response['object'] = $employee; 
 					} else {
 						$response['error'] = true;
 						$response['mysqli_error_message'] = $stmt->error; 
@@ -356,37 +365,109 @@
 			break;
 			
 			case 'get_release':
-				if(isTheseParametersAvailable(array('release_id'))){
-					$releaseId = $_POST['release_id'];
-					
-					$query="SELECT * FROM ". RELEASES_TABLE ." WHERE ". RELEASES_ID ."?";
-					
-					$stmt=$conn->prepare($query);
-					$stmt->bind_param("i", $releaseId);
-					$stmt->execute();
-					$stmt->store_result();
-					
-					if($stmt->num_rows > 0) {
+				if(strcmp($_SERVER['REQUEST_METHOD'], 'GET') == 0) {
+					if(isset($_GET['id'])){
+						$releaseId = $_GET['id'];
+						$query="SELECT * FROM ". RELEASES_TABLE ." WHERE ". RELEASES_ID ." = ?";
 						
-					}
-					
-					$query.="SELECT * FROM ". PRODUCTS_ORDERS_TABLE ." WHERE ". 
-						PRODUCTS_ORDERS_ID_RELEASE ."=$releaseId";
-					
-					/*
-					if($conn->multi_query($query)) {
-						do {
-							if($result = $conn->store_result()) {
+						$stmt=$conn->prepare($query);
+						$stmt->bind_param("i", $releaseId);
+						$stmt->execute();
+						$stmt->store_result();
+						if($stmt->num_rows > 0){
+							$rel = fetchObject($stmt);
+							// print_r($rel);
+							$stmt->close();
+							$emplId = $rel[RELEASES_ID_EMPLOYEE];
+							$query="SELECT * FROM ". EMPLOYEES_TABLE ." WHERE ". 
+								EMPLOYEE_ID ."= $emplId";
+							$stmt=$conn->prepare($query);
+							$stmt->execute();
+							$stmt->store_result();
+							$empl = fetchObject($stmt);
+							// print_r($empl);
+							$stmt->close();
+							//
+							$employee = new Employee($empl[EMPLOYEE_ID], $empl[EMPLOYEE_SYMBOL], 
+								$empl[EMPLOYEE_NAME], $empl[EMPLOYEE_SURNAME]);
+							// print($employee);
+							$query="SELECT * FROM ". PRODUCTS_ORDERS_TABLE ." WHERE ". 
+								PRODUCTS_ORDERS_ID_RELEASE ."= ?";
+							$stmt=$conn->prepare($query);
+							$stmt->bind_param("i", $releaseId);
+							$stmt->execute();
+							$stmt->store_result();
+							if($stmt->num_rows > 0){
+								$relProds = fetchObjects($stmt);
+								// print_r($relProds);
+								$stmt->close();
 								
-								$result->free();
+								$query="SELECT * FROM ". PRODUCTS_TABLE ." WHERE ". 
+									PRODUCT_ID ." IN (";
+								$productsIds = array();
+								//$uniqueProductsIds = array();
+								foreach($relProds as $key => $relProd)
+									$query .= $relProd[PRODUCTS_ORDERS_ID_PRODUCT]. ",";
+									
+								$query = rtrim($query, ","); // usunięcie przecinka na końcu
+								$query .= ")";
+								
+								$stmt=$conn->prepare($query);
+								$stmt->execute();
+								$stmt->store_result();
+								$prods = fetchObjects($stmt);
+								// print_r($prods);
+								$productsRelease = array();
+								$i=0;
+								while($i<count($relProds)) {
+									$product = new Product($prods[$i][PRODUCT_ID], $prods[$i][PRODUCT_QUANTITY], 
+										$prods[$i][PRODUCT_NAME], $prods[$i][PRODUCT_SYMBOL]);
+									$pr= new ProductRelease($product->toAssocArray(), $relProds[$i][PRODUCTS_ORDERS_STATUS],
+										$relProds[$i][PRODUCTS_ORDERS_QUANTITY]);
+									$productsRelease[$i] = $pr->toAssocArray();
+									$i++;
+								}
+								// print_r($productsRelease);
+								$release= new Release($rel[RELEASES_ID], $employee->toAssocArray() , $rel[RELEASES_STATUS], 
+								$rel[RELEASES_DATE_CREATION], /*$rel[RELEASES_DATE_REALIZING],*/ $productsRelease);
+								
+								// print_r($release);
+								$response['error'] = false; 
+								$response['message'] = 'Release fetched successfully'; 
+								$response['object'] = $release->toAssocArray(); 
+							} else {
+								$release= new Release($rel[RELEASES_ID], $employee->toAssocArray(), $rel[RELEASES_STATUS], 
+									$rel[RELEASES_DATE_CREATION], /*$rel[RELEASES_DATE_REALIZING],*/ null);
+								$response['object'] = $release->toAssocArray(); 
+								$response['error'] = true; 
+								$response['message'] = 'Release\'s products are\'nt in our database yet';
 							}
-						} while ($mysqli->next_result());
+						} 
+						else {
+							$response['error'] = true; 
+							$response['message'] = 'This release is`nt in our database yet';
+						}
+						$stmt->close();
 						
-					} */
-					
-				}else{
-					$response['error'] = true; 
-					$response['message'] = 'required parameters are not available'; 
+						/*
+						if($conn->multi_query($query)) {
+							do {
+								if($result = $conn->store_result()) {
+									
+									$result->free();
+								}
+							} while ($mysqli->next_result());
+							
+						} */
+					}
+					else{
+						$response['error'] = true; 
+						$response['message'] = 'required parameter is not available'; 
+					}
+				}
+				else {
+					$response['error'] = true;
+					$response['message'] = 'Only HTTP GET request method allowed.'; 
 				}
 			break;
 			
@@ -427,21 +508,21 @@
 						if(count($productsRel)>0) {
 							foreach($productsRel as $key => $product) {
 								if(!ProductStatus::isValidValue($product->status))
-									$product->status = ProductStatus::OCZEKUJĄCY;
-								$query2.="($product->productId, $release_id, $product->status, $product->quantity),";
+									$product->status = ProductStatus::AWAITED;
+								$query2.="($product->product->id, $release_id, $product->status, $product->requested_quantity),";
 							}
 
 							$query2 = rtrim($query2, ","); // usunięcie przecinka na końcu
-							echo $query2."\n";
+							//echo $query2."\n";
 							
 							if($conn->query($query2)) {
 								$release = array(
 									'id'=>$release_id,
-									'employeeId'=>$employee_id,
+									'employee'=>$release->employee,
 									'productsRelease'=>$productsRel,
 									'status'=>$status,
 									'creationDate'=>$c_date,
-									'realizationDate'=>null
+									//'realizationDate'=>null
 								);
 								
 								$response['error'] = false;								
@@ -464,7 +545,7 @@
 						}
 						else {
 							$response['error'] = true; 
-							$response['message'] = 'required parameter productsRelease is not available'; 
+							$response['message'] = 'Required parameter productsRelease is not available'; 
 						}
 					} else {
 						$response['error'] = true;
@@ -494,7 +575,7 @@
 					$relsIdsArray = array();
 					
 					//przygotowanie zapytania o pracowników w wydaniach
-					//$query="SELECT * FROM ". EMPLOYEES_TABLE ." WHERE id IN (";
+					$query="SELECT * FROM ". EMPLOYEES_TABLE ." WHERE id IN (";
 					// przygotowanie zapytania o produkty w wydaniach
 					$productsReleasesQuery="SELECT * FROM ". PRODUCTS_ORDERS_TABLE ." WHERE ". PRODUCTS_ORDERS_ID_RELEASE 
 						." IN (";
@@ -504,13 +585,10 @@
 					}
 					$productsReleasesQuery = rtrim($productsReleasesQuery, ","); // usunięcie przecinka na końcu
 					$productsReleasesQuery .= ")";
-				//	echo "\n".$productsReleasesQuery."\n";
-					
-					//$productsReleasesQuery = rtrim($productsReleasesQuery, "SELECT");
-
+					// echo "\n".$productsReleasesQuery."\n";
 					//echo implode(",", $employeesIdsArray);
 					// wyrzucenie powtarzających się ids pracowników
-					/*$uniqueEmplsIdsArray = 	array_unique($employeesIdsArray);
+					$uniqueEmplsIdsArray = 	array_unique($employeesIdsArray);
 					//$uniqueRelsIdsArray = array_unique($relsIdsArray);
 					
 					foreach($uniqueEmplsIdsArray as $key => $emplId)
@@ -519,11 +597,10 @@
 					$query = rtrim($query, ","); // usunięcie przecinka na końcu
 					$query .= ")";
 					//echo "\n".$query."\n";
-					*/
+					
 					// wykonanie zapytania o pracowniów
 					$stmt = $conn->prepare($query);
-					if($stmt->execute()) 
-					{
+					if($stmt->execute()) {
 						$employees = fetchObjects($stmt);
 						$stmt->close();
 						
@@ -592,9 +669,8 @@
 						$response['message'] = 'Employees in Realeases aren\'t fetched successfully';
 						$response['object'] = $releases; 
 					}	
-			//	}
-		//	}
-				} else {
+				}
+				else {
 					$response['error'] = true;
 					$response['message'] = 'Only HTTP GET request method allowed.'; 
 				}
@@ -612,6 +688,28 @@
 			}
 		}
 		return true; 
+	}
+	
+	function fetchObject($stmt) {
+		$array = array();
+		if($stmt instanceof mysqli_stmt)
+		{
+			// $stmt->store_result();
+			
+			$vars = array();
+			$data = array();
+			$meta = $stmt->result_metadata();
+			
+			while($field = $meta->fetch_field())
+				$vars[] = &$data[$field->name];
+			
+			call_user_func_array(array($stmt, 'bind_result'), $vars);
+			
+			$stmt->fetch();
+			foreach($data as $k=>$v)
+				$array[$k] = $v;
+		}
+		return $array;
 	}
 	
 	function fetchObjects($stmt) {
