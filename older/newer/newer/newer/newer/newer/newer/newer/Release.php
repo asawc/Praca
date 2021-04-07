@@ -76,7 +76,7 @@
 	abstract class ProductStatus extends BasicEnum {
 		// const __default = self::OCZEKUJĄCY;
 		
-		const OCZEKUJĄCY = 0; // awaited
+		const awaited = 0; // awaited
 		const BRAK_W_MAGAZYNIE = 1; 
 		const WYDANY = 2; // realized
 	}

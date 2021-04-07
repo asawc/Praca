@@ -1,17 +1,17 @@
 <?php 
 
-/*	require_once 'DbConnect.php';
+	require_once 'DbConnect.php';
 	require_once 'Release.php';
 	require_once 'Employee.php';
 	require_once 'ProductRelease.php';
 	require_once 'Product.php';
+
+/*	include("./DbConnect.php");
+	include("./Release.php");
+	include("./Employee.php");
+	include("./ProductRelease.php");
+	include("./Product.php");
 */
-	include("DbConnect.php");
-	include("Release.php");
-	include("Employee.php");
-	include("ProductRelease.php");
-	include("Product.php");
-	
 	$response = array();
 	
 	if(isset($_GET['apicall'])){
@@ -462,7 +462,7 @@
 					}
 					else{
 						$response['error'] = true; 
-						$response['message'] = 'required parameter is not available'; 
+						$response['message'] = 'Required parameter is not available'; 
 					}
 				}
 				else {
@@ -481,7 +481,8 @@
 					//$release=json_decode($json, true);
 					//displayJSONObjects($release);
 						
-					$employee = $release->employee;	
+					$employee = $release->employee;
+					//echo "foo is $employee";
 					$employee_id=$employee->id;
 					$status=$release->status;
 					$productsRel=$release->productsRelease;
@@ -495,6 +496,7 @@
 					// date_format($c_date, 'Y-m-d H:i:s')
 					$stmt = $conn->prepare($query1);
 					$stmt->bind_param("iis", $employee_id, $status, $c_format);
+					$stmt->execute();
 					
 					if($stmt->execute() && $stmt->affected_rows == 1) {
 						$release_id = $stmt->insert_id;
@@ -503,13 +505,13 @@
 						$query2="INSERT INTO ". PRODUCTS_ORDERS_TABLE .
 							" (". PRODUCTS_ORDERS_ID_PRODUCT ." ,". PRODUCTS_ORDERS_ID_RELEASE ." ,". 
 							PRODUCTS_ORDERS_STATUS ." ,". PRODUCTS_ORDERS_QUANTITY .
-							") VALUES ";
+							") VALUES (?, ?, ?, ?)";
 						
 						if(count($productsRel)>0) {
 							foreach($productsRel as $key => $product) {
-								if(!ProductStatus::isValidValue($product->status))
-									$product->status = ProductStatus::AWAITED;
-								$query2.="($product->product->id, $release_id, $product->status, $product->requested_quantity),";
+								if(!ProductStatus::isValidValue($productsRel->status))
+									$productsRel->status = ProductStatus::awaited;
+								$query2.="($product->product->id, $release_id, $productsRel->status, $productsRel->requested_quantity),";
 							}
 
 							$query2 = rtrim($query2, ","); // usunięcie przecinka na końcu
