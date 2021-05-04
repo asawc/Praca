@@ -5,7 +5,13 @@
 	require_once 'Employee.php';
 	require_once 'ProductRelease.php';
 	require_once 'Product.php';
-	
+
+/*	include("./DbConnect.php");
+	include("./Release.php");
+	include("./Employee.php");
+	include("./ProductRelease.php");
+	include("./Product.php");
+*/
 	$response = array();
 	
 	if(isset($_GET['apicall'])){
@@ -120,7 +126,7 @@
 				}
 			break;
 			
-			case 'get_product_by_id':
+			case 'get_product':
 				if(isset($_GET['id'])){
 					$id = $_GET['id'];
 					$query="SELECT ". PRODUCT_ID .", ". PRODUCT_NAME .", ". PRODUCT_SYMBOL .", ". PRODUCT_QUANTITY .
@@ -224,85 +230,71 @@
 				
 			break; 
 
-			case 'get_product':
-				if(strcmp($_SERVER['REQUEST_METHOD'], 'GET') == 0) {
-					if(isset($_GET['symbol'])){
-						$productsymbol = $_GET['symbol'];
+			case 'check_product':
+				if(isTheseParametersAvailable(array('productsymbol'))){
+					$productsymbol = $_POST['productsymbol'];
+					
+					$query="SELECT ". PRODUCT_ID .", ". PRODUCT_QUANTITY . ", ". PRODUCT_NAME .", ". PRODUCT_SYMBOL .
+								" FROM ". PRODUCTS_TABLE ." WHERE ". PRODUCT_SYMBOL ." = ?";
+					$stmt = $conn->prepare($query);
+					$stmt->bind_param("s",$productsymbol);
+					$stmt->execute();
+					$stmt->store_result();
+					if($stmt->num_rows > 0){
+						$stmt->bind_result($id, $quantity, $productname, $productsymbol);
+						$stmt->fetch();
 						
-						$query="SELECT ". PRODUCT_ID .", ". PRODUCT_QUANTITY . ", ". PRODUCT_NAME .", ". PRODUCT_SYMBOL .
-									" FROM ". PRODUCTS_TABLE ." WHERE ". PRODUCT_SYMBOL ." = ?";
-						$stmt = $conn->prepare($query);
-						$stmt->bind_param("s",$productsymbol);
-						$stmt->execute();
-						$stmt->store_result();
-						if($stmt->num_rows > 0){
-							$stmt->bind_result($id, $quantity, $productname, $productsymbol);
-							$stmt->fetch();
-							
-							$product = array(
-								'id'=> $id,
-								'quantity'=>$quantity, 
-								'productname'=>$productname, 
-								'productsymbol'=>$productsymbol,
-							);
-							$response['error'] = false; 
-							$response['message'] = 'This product is in our database'; 
-							$response['object'] = $product; 
-						}else{
-							$response['error'] = true; 
-							$response['message'] = 'This product is`nt in our database yet';
-						}
-						$stmt->close();
+						$product = array(
+							'id'=> $id,
+							'quantity'=>$quantity, 
+							'productname'=>$productname, 
+							'productsymbol'=>$productsymbol,
+						);
+						$response['error'] = false; 
+						$response['message'] = 'This product is in our database'; 
+						$response['object'] = $product; 
+					}else{
+						$response['error'] = false; 
+						$response['message'] = 'This product is`nt in our database yet';
 					}
-					else{
-						$response['error'] = true; 
-						$response['message'] = 'required parameters are not available'; 
-					}
-				}
-				else {
-					$response['error'] = true;
-					$response['message'] = 'Only HTTP GET request method allowed.'; 
+					$stmt->close();
+				}else{
+					$response['error'] = true; 
+					$response['message'] = 'required parameters are not available'; 
 				}
 			break;
 
-			case 'get_employee':
-				if(strcmp($_SERVER['REQUEST_METHOD'], 'GET') == 0) {
-					if(isset($_GET['symbol'])){
-						$symbol = $_GET['symbol'];
+			case 'check_employee':
+				if(isTheseParametersAvailable(array('symbol'))){
+					$symbol = $_POST['symbol'];
+					
+					$query="SELECT ". EMPLOYEE_ID .", ". EMPLOYEE_SURNAME . ", ". EMPLOYEE_NAME .", ". EMPLOYEE_SYMBOL .
+								" FROM ". EMPLOYEES_TABLE ." WHERE ". EMPLOYEE_SYMBOL ." = ?";
+					$stmt = $conn->prepare($query);
+					$stmt->bind_param("s",$symbol);
+					$stmt->execute();
+					$stmt->store_result();
+					if($stmt->num_rows > 0){
+						$stmt->bind_result($id, $surname, $name, $symbol);
+						$stmt->fetch();
 						
-						$query="SELECT ". EMPLOYEE_ID .", ". EMPLOYEE_SURNAME . ", ". EMPLOYEE_NAME .", ". EMPLOYEE_SYMBOL .
-									" FROM ". EMPLOYEES_TABLE ." WHERE ". EMPLOYEE_SYMBOL ." = ?";
-						$stmt = $conn->prepare($query);
-						$stmt->bind_param("s",$symbol);
-						$stmt->execute();
-						$stmt->store_result();
-						if($stmt->num_rows > 0){
-							$stmt->bind_result($id, $surname, $name, $symbol);
-							$stmt->fetch();
-							
-							$employee = array(
-								'id'=> $id,
-								'surname'=>$surname, 
-								'name'=>$name, 
-								'symbol'=>$symbol,
-							);
-							$response['error'] = false; 
-							$response['message'] = 'This employee is in our database'; 
-							$response['object'] = $employee; 
-						}else{
-							$response['error'] = true; 
-							$response['message'] = 'This employee is`nt in our database yet';
-						}
-						$stmt->close();
+						$employee = array(
+							'id'=> $id,
+							'surname'=>$surname, 
+							'name'=>$name, 
+							'symbol'=>$symbol,
+						);
+						$response['error'] = false; 
+						$response['message'] = 'This employee is in our database'; 
+						$response['object'] = $employee; 
+					}else{
+						$response['error'] = false; 
+						$response['message'] = 'This employee is`nt in our database yet';
 					}
-					else{
-						$response['error'] = true; 
-						$response['message'] = 'required parameter is not available'; 
-					}
-				}
-				else {
-					$response['error'] = true;
-					$response['message'] = 'Only HTTP GET request method allowed.'; 
+					$stmt->close();
+				}else{
+					$response['error'] = true; 
+					$response['message'] = 'required parameters are not available'; 
 				}
 			break;
 			
@@ -327,42 +319,49 @@
 			break;
 			
 			case 'add_employee':
-				$json = file_get_contents('php://input');
-				// Converts it into a PHP object
-				// var_dump(json_decode($json, true));
-				$employee=json_decode($json);
-				//$release=json_decode($json, true);
-				//displayJSONObjects($release);
-				
-				$id=$employee->id;
-				$symbol=$employee->symbol;
-				$name=$employee->name;
-				$surname=$employee->surname;
-				
-				$query="INSERT INTO ". EMPLOYEES_TABLE .
-						" (". EMPLOYEE_ID .", ". EMPLOYEE_SYMBOL .", ". EMPLOYEE_NAME .", ". EMPLOYEE_SURNAME .
-						") VALUES (?, ?, ?, ?)";
-				$stmt = $conn->prepare($query);
-				$stmt->bind_param("isss", $id, $symbol, $name, $surname);
-				
-				if($stmt->execute() && $stmt->affected_rows == 1) {
-					$id = $stmt->insert_id;
+				if(isTheseParametersAvailable(array('name', 'surname'))){
+					$name=$_POST['name'];
+					$surname=$_POST['surname'];
 					
-					$employee = array(
-						'id'=>$id, 
-						'name'=>$name, 
-						'surname'=>$surname,
-						'symbol'=>$symbol
-					);
-					$response['error'] = false; 
-					$response['message'] = 'Employee registered successfully'; 
-					$response['object'] = $employee; 
-				} else {
-					$response['error'] = true;
-					$response['mysqli_error_message'] = $stmt->error; 
-					$response['message'] = 'Insert query isnt executed properly'; 
+					$query="INSERT INTO ". EMPLOYEES_TABLE .
+							" (". EMPLOYEE_NAME .", ". EMPLOYEE_SURNAME .") VALUES (?, ?)";
+					$stmt = $conn->prepare($query);
+					$stmt->bind_param("ss", $name, $surname);
+					
+					if($stmt->execute() && $stmt->affected_rows == 1) {
+						$id = $stmt->insert_id;
+						$stmt->close();
+						$symbol=str_pad("$id", 4, "0", STR_PAD_LEFT);
+						$symbol="RXH".$symbol;
+						
+						$query="UPDATE ". EMPLOYEES_TABLE ." SET ". EMPLOYEE_SYMBOL ." = ? WHERE ". EMPLOYEE_ID ." = ?";
+						$stmt = $conn->prepare($query);
+						$stmt->bind_param("si", $symbol, $id);
+						
+						if(!$stmt->execute() && !$stmt->affected_rows == 1) {
+							$response['error'] = true; 
+							$response['message'] = 'Symbol update query isnt executed properly'; 
+						}
+						
+						$employee = array(
+							'id'=>$id, 
+							'name'=>$name, 
+							'surname'=>$surname,
+							'symbol'=>$symbol
+						);
+						$response['error'] = false; 
+						$response['message'] = 'Employee registered successfully'; 
+						$response['object'] = $employee; 
+					} else {
+						$response['error'] = true;
+						$response['mysqli_error_message'] = $stmt->error; 
+						$response['message'] = 'Insert query isnt executed properly'; 
+					}
+					$stmt->close();
+				}else{
+					$response['error'] = true; 
+					$response['message'] = 'required parameters are not available'; 
 				}
-				$stmt->close();
 			break;
 			
 			case 'get_release':
@@ -430,7 +429,7 @@
 								}
 								// print_r($productsRelease);
 								$release= new Release($rel[RELEASES_ID], $employee->toAssocArray() , $rel[RELEASES_STATUS], 
-								$rel[RELEASES_DATE_CREATION], $rel[RELEASES_DATE_REALIZING], $productsRelease);
+								$rel[RELEASES_DATE_CREATION], /*$rel[RELEASES_DATE_REALIZING],*/ $productsRelease);
 								
 								// print_r($release);
 								$response['error'] = false; 
@@ -438,7 +437,7 @@
 								$response['object'] = $release->toAssocArray(); 
 							} else {
 								$release= new Release($rel[RELEASES_ID], $employee->toAssocArray(), $rel[RELEASES_STATUS], 
-									$rel[RELEASES_DATE_CREATION], $rel[RELEASES_DATE_REALIZING], null);
+									$rel[RELEASES_DATE_CREATION], /*$rel[RELEASES_DATE_REALIZING],*/ null);
 								$response['object'] = $release->toAssocArray(); 
 								$response['error'] = true; 
 								$response['message'] = 'Release\'s products are\'nt in our database yet';
@@ -463,7 +462,7 @@
 					}
 					else{
 						$response['error'] = true; 
-						$response['message'] = 'required parameter is not available'; 
+						$response['message'] = 'Required parameter is not available'; 
 					}
 				}
 				else {
@@ -482,7 +481,8 @@
 					//$release=json_decode($json, true);
 					//displayJSONObjects($release);
 						
-					$employee = $release->employee;	
+					$employee = $release->employee;
+					//echo "foo is $employee";
 					$employee_id=$employee->id;
 					$status=$release->status;
 					$productsRel=$release->productsRelease;
@@ -496,6 +496,7 @@
 					// date_format($c_date, 'Y-m-d H:i:s')
 					$stmt = $conn->prepare($query1);
 					$stmt->bind_param("iis", $employee_id, $status, $c_format);
+					$stmt->execute();
 					
 					if($stmt->execute() && $stmt->affected_rows == 1) {
 						$release_id = $stmt->insert_id;
@@ -504,13 +505,13 @@
 						$query2="INSERT INTO ". PRODUCTS_ORDERS_TABLE .
 							" (". PRODUCTS_ORDERS_ID_PRODUCT ." ,". PRODUCTS_ORDERS_ID_RELEASE ." ,". 
 							PRODUCTS_ORDERS_STATUS ." ,". PRODUCTS_ORDERS_QUANTITY .
-							") VALUES ";
+							") VALUES (?, ?, ?, ?)";
 						
 						if(count($productsRel)>0) {
 							foreach($productsRel as $key => $product) {
-								if(!ProductStatus::isValidValue($product->status))
-									$product->status = ProductStatus::OCZEKUJĄCY;
-								$query2.="($product->product->id, $release_id, $product->status, $product->quantity),";
+								if(!ProductStatus::isValidValue($productsRel->status))
+									$productsRel->status = ProductStatus::awaited;
+								$query2.="($product->product->id, $release_id, $productsRel->status, $productsRel->requested_quantity),";
 							}
 
 							$query2 = rtrim($query2, ","); // usunięcie przecinka na końcu
@@ -523,7 +524,7 @@
 									'productsRelease'=>$productsRel,
 									'status'=>$status,
 									'creationDate'=>$c_date,
-									'realizationDate'=>null
+									//'realizationDate'=>null
 								);
 								
 								$response['error'] = false;								
@@ -546,7 +547,7 @@
 						}
 						else {
 							$response['error'] = true; 
-							$response['message'] = 'required parameter productsRelease is not available'; 
+							$response['message'] = 'Required parameter productsRelease is not available'; 
 						}
 					} else {
 						$response['error'] = true;
@@ -648,7 +649,7 @@
 								$releases[$i]['creationDate']=$releases[$i][RELEASES_DATE_CREATION];
 								//$releases[$i]['realizationDate']=$releases[$i][RELEASES_DATE_REALIZING];
 								unset($releases[$i][RELEASES_DATE_CREATION]);
-								//sunset($releases[$i][RELEASES_DATE_REALIZING]);
+								//unset($releases[$i][RELEASES_DATE_REALIZING]);
 								unset($releases[$i][RELEASES_ID_EMPLOYEE]);
 								$i++;
 							}

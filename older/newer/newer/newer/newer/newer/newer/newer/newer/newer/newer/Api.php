@@ -120,7 +120,7 @@
 				}
 			break;
 			
-			case 'get_product_by_id':
+			case 'get_product':
 				if(isset($_GET['id'])){
 					$id = $_GET['id'];
 					$query="SELECT ". PRODUCT_ID .", ". PRODUCT_NAME .", ". PRODUCT_SYMBOL .", ". PRODUCT_QUANTITY .
@@ -249,19 +249,14 @@
 							$response['message'] = 'This product is in our database'; 
 							$response['object'] = $product; 
 						}else{
-							$response['error'] = true; 
+							$response['error'] = false; 
 							$response['message'] = 'This product is`nt in our database yet';
 						}
 						$stmt->close();
-					}
-					else{
+					}else{
 						$response['error'] = true; 
 						$response['message'] = 'required parameters are not available'; 
 					}
-				}
-				else {
-					$response['error'] = true;
-					$response['message'] = 'Only HTTP GET request method allowed.'; 
 				}
 			break;
 
@@ -290,7 +285,7 @@
 							$response['message'] = 'This employee is in our database'; 
 							$response['object'] = $employee; 
 						}else{
-							$response['error'] = true; 
+							$response['error'] = false; 
 							$response['message'] = 'This employee is`nt in our database yet';
 						}
 						$stmt->close();
@@ -327,42 +322,49 @@
 			break;
 			
 			case 'add_employee':
-				$json = file_get_contents('php://input');
-				// Converts it into a PHP object
-				// var_dump(json_decode($json, true));
-				$employee=json_decode($json);
-				//$release=json_decode($json, true);
-				//displayJSONObjects($release);
-				
-				$id=$employee->id;
-				$symbol=$employee->symbol;
-				$name=$employee->name;
-				$surname=$employee->surname;
-				
-				$query="INSERT INTO ". EMPLOYEES_TABLE .
-						" (". EMPLOYEE_ID .", ". EMPLOYEE_SYMBOL .", ". EMPLOYEE_NAME .", ". EMPLOYEE_SURNAME .
-						") VALUES (?, ?, ?, ?)";
-				$stmt = $conn->prepare($query);
-				$stmt->bind_param("isss", $id, $symbol, $name, $surname);
-				
-				if($stmt->execute() && $stmt->affected_rows == 1) {
-					$id = $stmt->insert_id;
+				if(isTheseParametersAvailable(array('name', 'surname'))){
+					$name=$_POST['name'];
+					$surname=$_POST['surname'];
 					
-					$employee = array(
-						'id'=>$id, 
-						'name'=>$name, 
-						'surname'=>$surname,
-						'symbol'=>$symbol
-					);
-					$response['error'] = false; 
-					$response['message'] = 'Employee registered successfully'; 
-					$response['object'] = $employee; 
-				} else {
-					$response['error'] = true;
-					$response['mysqli_error_message'] = $stmt->error; 
-					$response['message'] = 'Insert query isnt executed properly'; 
+					$query="INSERT INTO ". EMPLOYEES_TABLE .
+							" (". EMPLOYEE_NAME .", ". EMPLOYEE_SURNAME .") VALUES (?, ?)";
+					$stmt = $conn->prepare($query);
+					$stmt->bind_param("ss", $name, $surname);
+					
+					if($stmt->execute() && $stmt->affected_rows == 1) {
+						$id = $stmt->insert_id;
+						$stmt->close();
+						$symbol=str_pad("$id", 4, "0", STR_PAD_LEFT);
+						$symbol="RXH".$symbol;
+						
+						$query="UPDATE ". EMPLOYEES_TABLE ." SET ". EMPLOYEE_SYMBOL ." = ? WHERE ". EMPLOYEE_ID ." = ?";
+						$stmt = $conn->prepare($query);
+						$stmt->bind_param("si", $symbol, $id);
+						
+						if(!$stmt->execute() && !$stmt->affected_rows == 1) {
+							$response['error'] = true; 
+							$response['message'] = 'Symbol update query isnt executed properly'; 
+						}
+						
+						$employee = array(
+							'id'=>$id, 
+							'name'=>$name, 
+							'surname'=>$surname,
+							'symbol'=>$symbol
+						);
+						$response['error'] = false; 
+						$response['message'] = 'Employee registered successfully'; 
+						$response['object'] = $employee; 
+					} else {
+						$response['error'] = true;
+						$response['mysqli_error_message'] = $stmt->error; 
+						$response['message'] = 'Insert query isnt executed properly'; 
+					}
+					$stmt->close();
+				}else{
+					$response['error'] = true; 
+					$response['message'] = 'required parameters are not available'; 
 				}
-				$stmt->close();
 			break;
 			
 			case 'get_release':
@@ -646,9 +648,9 @@
 									$releases[$i]['productsRelease'] = null;
 								// $releases[$i]['creationDate']=DateTime::createFromFormat('Y-m-d H:i:s', $releases[$i][RELEASES_DATE_CREATION]);
 								$releases[$i]['creationDate']=$releases[$i][RELEASES_DATE_CREATION];
-								//$releases[$i]['realizationDate']=$releases[$i][RELEASES_DATE_REALIZING];
+								$releases[$i]['realizationDate']=$releases[$i][RELEASES_DATE_REALIZING];
 								unset($releases[$i][RELEASES_DATE_CREATION]);
-								//sunset($releases[$i][RELEASES_DATE_REALIZING]);
+								unset($releases[$i][RELEASES_DATE_REALIZING]);
 								unset($releases[$i][RELEASES_ID_EMPLOYEE]);
 								$i++;
 							}
